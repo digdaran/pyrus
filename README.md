@@ -1,22 +1,48 @@
-# Anonymous Telegram Group Bot
+# Telegram-бот розыгрыша «Оплати и участвуй»
 
-This bot forwards messages sent to it in a private chat to a target group while keeping the original sender anonymous.
+Бот на `aiogram 3 + FastAPI + SQLite`, принимающий оплаты только по СБП через T-Банк эквайринг.
 
-## Setup
+## Функции
+- `/start` + сохранение телефона через `request_contact`.
+- Покупка номерков: пользователь вводит количество, сумма считается автоматически.
+- Создание платежа в T-Банке (`Init`), получение PAYLOAD (`GetQr`) и отправка QR в Telegram (СБП — предпочтительный способ), плюс ссылка на оплату картой как дополнительный вариант.
+- Подтверждение оплаты:
+  - webhook `POST /tbank/webhook` (основной путь),
+  - fallback кнопкой `🔄 Проверить оплату` или командой `/check_payment` (`GetState`).
+- Идемпотентная финализация: выдача случайных уникальных номерков из диапазона `1..TICKET_MAX`.
+- Админ-команды:
+  - `/stats`
+  - `/stop_registration`
+  - `/resume_registration`
+  - `/manual_allocate` — ручная выдача по телефону + количество, с отметкой `source_admin_id` в `tickets`.
+- Уведомления админам о крупной покупке по порогам.
 
-1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the API token.
-2. Invite the bot to your target group and obtain the group's chat ID.
-3. Set the following environment variables:
+## Переменные окружения
+Скопируйте `.env.example` в `.env` и заполните:
 
+```bash
+cp .env.example .env
 ```
-BOT_TOKEN=<telegram-bot-token>
-TARGET_CHAT_ID=<target-group-id>
+
+Обязательные:
+- `BOT_TOKEN`
+- `ADMIN_IDS`
+- `PUBLIC_BASE_URL`
+- `TBANK_TERMINAL_KEY`
+- `TBANK_PASSWORD`
+- `DB_PATH`
+
+## Запуск локально
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
 ```
 
-## Run
-
+## Запуск в Docker
+```bash
+docker compose up -d --build
 ```
-python bot.py
-```
 
-The bot listens for text messages sent to it in private and posts them to the specified group.
+SQLite-файл хранится в `./data/bot.db` через volume.
